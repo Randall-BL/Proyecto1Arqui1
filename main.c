@@ -52,9 +52,9 @@ volatile uint8_t decrypted_text[64];
 
 // ------------------ Función principal ------------------
 void main() {
-    uint8_t plaintext[] = "Mensaje de prueba para TEA";
-    size_t text_len = 27;
-    uint32_t key[4] = {0x12345678, 0x9ABCDEF0, 0xFEDCBA98, 0x76543210};
+    uint8_t plaintext[] = "HOLA1234";
+    size_t text_len = 8;
+    uint32_t key[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};
     size_t num_blocks = (text_len + 7) / 8;
 
     print_string("=== TEA Bare-metal Example ===\nOriginal: ");
