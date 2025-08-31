@@ -5,74 +5,112 @@
 void tea_encrypt_asm(uint32_t v[2], const uint32_t key[4]);
 void tea_decrypt_asm(uint32_t v[2], const uint32_t key[4]);
 
-// ------------------ Funciones auxiliares propias ------------------
+// ------------------ Funciones de impresión bare-metal ------------------
+void print_char(char c) {
+    volatile char *uart = (volatile char*)0x10000000; // placeholder UART
+    *uart = c;
+}
 
-// Copiar memoria (reemplaza memcpy)
+void print_hex_digit(uint8_t val) {
+    if (val < 10) print_char('0' + val);
+    else print_char('A' + (val - 10));
+}
+
+void print_uint32_hex(uint32_t val) {
+    for (int i = 28; i >= 0; i -= 4) {
+        print_hex_digit((val >> i) & 0xF);
+    }
+}
+
+void print_string(const char* str) {
+    while (*str) print_char(*str++);
+}
+
+void print_block_bytes(uint32_t block[2]) {
+    uint8_t *b = (uint8_t*)block;
+    for (int i = 0; i < 8; i++) {
+        print_hex_digit(b[i] >> 4);
+        print_hex_digit(b[i] & 0xF);
+        print_char(' ');
+    }
+}
+
+// ------------------ Funciones auxiliares ------------------
 void my_memcpy(void *dest, const void *src, size_t n) {
     uint8_t *d = (uint8_t*)dest;
     const uint8_t *s = (const uint8_t*)src;
     for (size_t i = 0; i < n; i++) d[i] = s[i];
 }
 
-// Función stub para printf (no hace nada en bare-metal)
-int printf(const char *fmt, ...) {
-    // Opcional: implementar envío a UART si quieres ver salida
-    return 0;
-}
-
-// Rellenar bloque incompleto (padding)
 void pad_block(uint8_t *block, size_t len) {
     for (size_t i = len; i < 8; i++) block[i] = 0;
 }
 
+// ------------------ Variables globales ------------------
+volatile uint32_t cipher_blocks[10][2];
+volatile uint8_t decrypted_text[64];
+
 // ------------------ Función principal ------------------
-int main() {
+void main() {
     uint8_t plaintext[] = "Mensaje de prueba para TEA";
-    size_t text_len = 27; // strlen sin usar string.h
+    size_t text_len = 27;
     uint32_t key[4] = {0x12345678, 0x9ABCDEF0, 0xFEDCBA98, 0x76543210};
-
-    printf("=== Prueba TEA con ensamblador RISC-V ===\n");
-    printf("Texto original: %s\n\n", plaintext);
-
     size_t num_blocks = (text_len + 7) / 8;
-    uint32_t ciphertext[num_blocks][2];
 
-    // ------------------ Cifrado ------------------
-    printf("--- Cifrado ---\n");
+    print_string("=== TEA Bare-metal Example ===\nOriginal: ");
+    print_string((char*)plaintext);
+    print_string("\n\n");
+
     for (size_t i = 0; i < num_blocks; i++) {
-        uint32_t block[2] = {0, 0};
+        uint32_t block[2] = {0,0};
         size_t rem = text_len - i*8;
         if (rem >= 8) my_memcpy(block, plaintext + i*8, 8);
         else { my_memcpy(block, plaintext + i*8, rem); pad_block((uint8_t*)block, rem); }
 
+        // ------------------ Antes de cifrar ------------------
+        print_string("Bloque original ");
+        print_char('0' + i);
+        print_string(": ");
+        print_block_bytes(block);
+        print_string("\n");
+
+        // ------------------ Cifrado ------------------
+        print_string("Cifrando bloque ");
+        print_char('0' + i);
+        print_string("...\n");
         tea_encrypt_asm(block, key);
-        ciphertext[i][0] = block[0];
-        ciphertext[i][1] = block[1];
-        printf("Bloque cifrado %zu: %08X %08X\n", i+1, block[0], block[1]);
-    }
+        cipher_blocks[i][0] = block[0];
+        cipher_blocks[i][1] = block[1];
 
-    // ------------------ Descifrado ------------------
-    printf("\n--- Descifrado ---\n");
-    uint8_t decrypted[text_len + 1];
-    size_t pos = 0;
+        print_string("Bloque cifrado ");
+        print_char('0' + i);
+        print_string(": ");
+        print_block_bytes(block);
+        print_string("\n");
 
-    for (size_t i = 0; i < num_blocks; i++) {
-        uint32_t block[2];
-        block[0] = ciphertext[i][0];
-        block[1] = ciphertext[i][1];
-
+        // ------------------ Descifrado ------------------
+        print_string("Descifrando bloque ");
+        print_char('0' + i);
+        print_string("...\n");
         tea_decrypt_asm(block, key);
-
-        my_memcpy(decrypted + pos, &block[0], 4);
-        pos += 4;
-        if (pos < text_len) {
-            my_memcpy(decrypted + pos, &block[1], 4);
-            pos += 4;
+        for (size_t j = 0; j < 8 && i*8 + j < text_len; j++) {
+            decrypted_text[i*8 + j] = ((uint8_t*)block)[j];
         }
+
+        print_string("Bloque descifrado ");
+        print_char('0' + i);
+        print_string(": ");
+        print_block_bytes(block);
+        print_string("\n\n");
     }
 
-    decrypted[text_len] = '\0';
-    printf("Mensaje descifrado: %s\n", decrypted);
+    decrypted_text[text_len] = '\0';
+    print_string("Mensaje final descifrado: ");
+    print_string((char*)decrypted_text);
+    print_string("\n");
 
-    return 0;
+    // Mantener el programa corriendo
+    while (1) {
+        __asm__ volatile ("nop");
+    }
 }

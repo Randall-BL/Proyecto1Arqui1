@@ -1,11 +1,7 @@
-    .section .text
-    .globl _start
+.section .text
+.globl _start
+
 _start:
-    # Inicializar puntero de pila (definido en linker.ld)
-    la sp, _stack_top     
-
-    # Llamar a main
-    call main             
-
-    # Si main termina, bucle infinito
+    la sp, _stack_top   # stack pointer
+    call main
 1:  j 1b
