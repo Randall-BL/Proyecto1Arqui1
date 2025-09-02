@@ -1,5 +1,11 @@
 cd /mnt/c/Users/YITAN/OneDrive/Escritorio/Proyecto1Arqui1
 
+
+
+
+cd /mnt/c/Users/YITAN/Desktop/Proyecto1Arqui1
+
+
 docker build -t riscv-project1 .
 
 docker run --rm -it \
