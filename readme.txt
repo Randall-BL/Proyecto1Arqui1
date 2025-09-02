@@ -29,7 +29,9 @@ gdb-multiarch test.elf
 target remote localhost:1234
 layout regs 
 break main
-break main.c:81
+break main.c:126
+break main.c:140
+break main.c:86
 
 
 break decrypt_break

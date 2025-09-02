@@ -7,8 +7,13 @@ void tea_decrypt_asm(uint32_t v[2], const uint32_t key[4]);
 
 // ------------------ Funciones de impresión bare-metal ------------------
 void print_char(char c) {
-    volatile char *uart = (volatile char*)0x10000000; // placeholder UART
+    volatile char *uart = (volatile char*)0x10000000;
     *uart = c;
+}
+
+char uart_read_char() {
+    volatile char *uart = (volatile char*)0x10000000;
+    return *uart;   // leer un carácter desde UART
 }
 
 void print_hex_digit(uint8_t val) {
@@ -46,26 +51,66 @@ void pad_block(uint8_t *block, size_t len) {
     for (size_t i = len; i < 8; i++) block[i] = 0;
 }
 
+size_t my_strlen(const char* str) {
+    size_t len = 0;
+    while (str[len] != '\0') len++;
+    return len;
+}
+
 // ------------------ Variables globales ------------------
 volatile uint32_t cipher_blocks[10][2];
 volatile uint8_t decrypted_text[64];
 
+// ------------------ Mensajes predefinidos ------------------
+const char* predefined_texts[] = {
+    "ME LLAMO RANDALL",
+    "ARQUITECTURA RISC V",
+    "HOLA1234",
+    "Mensaje de prueba para TEA"
+};
+const size_t num_texts = sizeof(predefined_texts) / sizeof(predefined_texts[0]);
+
 // ------------------ Función principal ------------------
 void main() {
-    uint8_t plaintext[] = "HOLA1234";
-    size_t text_len = 8;
-    uint32_t key[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};
+    print_string("=== TEA Bare-metal Example ===\n");
+    print_string("Seleccione un mensaje (0-3):\n");
+
+    for (size_t i = 0; i < num_texts; i++) {
+        print_char('0' + i);
+        print_string(": ");
+        print_string(predefined_texts[i]);
+        print_string("\n");
+    }
+
+    // Leer opción desde UART
+    char c = uart_read_char();
+    size_t choice = c - '0';
+    if (choice >= num_texts) choice = 0; // por seguridad
+
+    // Seleccionar mensaje
+    const char* selected_text = predefined_texts[choice];
+    size_t text_len = my_strlen(selected_text);
+
+    uint8_t plaintext[64];
+    my_memcpy(plaintext, selected_text, text_len);
+
+    uint32_t key[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};// <<Keys:  uint32_t key[4] = {0x12345678, 0x9ABCDEF0, 0xFEDCBA98, 0x76543210}
     size_t num_blocks = (text_len + 7) / 8;
 
-    print_string("=== TEA Bare-metal Example ===\nOriginal: ");
+    print_string("\nOriginal: ");
     print_string((char*)plaintext);
     print_string("\n\n");
 
     for (size_t i = 0; i < num_blocks; i++) {
         uint32_t block[2] = {0,0};
         size_t rem = text_len - i*8;
-        if (rem >= 8) my_memcpy(block, plaintext + i*8, 8);
-        else { my_memcpy(block, plaintext + i*8, rem); pad_block((uint8_t*)block, rem); }
+
+        if (rem >= 8) {
+            my_memcpy(block, plaintext + i*8, 8);
+        } else {
+            my_memcpy(block, plaintext + i*8, rem);
+            pad_block((uint8_t*)block, rem);   // << padding aquí
+        }
 
         // ------------------ Antes de cifrar ------------------
         print_string("Bloque original ");
@@ -93,6 +138,7 @@ void main() {
         print_char('0' + i);
         print_string("...\n");
         tea_decrypt_asm(block, key);
+
         for (size_t j = 0; j < 8 && i*8 + j < text_len; j++) {
             decrypted_text[i*8 + j] = ((uint8_t*)block)[j];
         }
