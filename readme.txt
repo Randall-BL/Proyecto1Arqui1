@@ -37,7 +37,13 @@ Proyecto1Arqui1/
 Navegar hacia la carpeta donde se tiene clonado el repositorio, por ejemplo: 
 cd /mnt/c/Users/YITAN/OneDrive/Escritorio/Proyecto1Arqui1
 
+
 Luego ejecutar: 
+
+
+
+cd /mnt/c/Users/YITAN/Desktop/Proyecto1Arqui1
+
 docker build -t riscv-project1 .
 ```
 
