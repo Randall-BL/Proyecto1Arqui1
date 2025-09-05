@@ -1,19 +1,26 @@
 ENTRY(_start)
-SECTIONS
-{
-  . = 0x80000000;    /* QEMU virt machine reset vector */
-  .text : { 
+
+MEMORY {
+  RAM (rwx) : ORIGIN = 0x80000000, LENGTH = 128K
+}
+
+SECTIONS {
+  . = ORIGIN(RAM);
+
+  .text : {
     *(.text*)
-    *(.text.startup)
+    *(.rodata*)   /* Literales */
   }
-  .rodata : { *(.rodata*) }
-  .data : { *(.data*) }
-  .bss : { 
+
+  .data : {
+    *(.data*)
+  }
+
+  .bss : {
     *(.bss*)
     *(COMMON)
   }
-  
-  /* Stack grows downward from this address */
-  . = ALIGN(8);
-  _stack_top = . + 0x10000;  /* 64KB stack */
+
+  . = ALIGN(16);
+  _stack_top = . + 0x4000;  /* 16 KB de stack */
 }
