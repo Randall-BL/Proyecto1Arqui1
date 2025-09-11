@@ -94,7 +94,7 @@ void main() {
     uint8_t plaintext[64];
     my_memcpy(plaintext, selected_text, text_len);
 
-    uint32_t key[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};// <<Keys:  uint32_t key[4] = {0x12345678, 0x9ABCDEF0, 0xFEDCBA98, 0x76543210}
+    uint32_t key[4] = {0x11111111, 0x22222222, 0x33333333, 0x44444444};// Usar las siguientes Keys en caso de pruebas: <<Keys:  uint32_t key[4] = {0x12345678, 0x9ABCDEF0, 0xFEDCBA98, 0x76543210}
     size_t num_blocks = (text_len + 7) / 8;
 
     print_string("\nOriginal: ");

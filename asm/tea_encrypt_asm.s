@@ -1,6 +1,4 @@
 # TEA Encryption/Decryption in RISC-V64 Assembly
-# Compatible with existing C driver code
-#
 # void tea_encrypt_asm(uint32_t v[2], const uint32_t key[4])
 # void tea_decrypt_asm(uint32_t v[2], const uint32_t key[4])
 

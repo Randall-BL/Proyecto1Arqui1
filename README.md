@@ -4,9 +4,11 @@
 Este proyecto implementa el algoritmo de encriptación **TEA (Tiny Encryption Algorithm)** sobre arquitectura **RISC-V**, utilizando una separación entre **driver en C** y **funciones críticas en ensamblador**.  
 El desarrollo se probó mediante **QEMU** para emulación y **GDB** para depuración.
 
+---
+
 ## 1. Arquitectura del Software
 
-## Estructura del Proyecto
+### Estructura del Proyecto
 Proyecto1Arqui1/
 ├── Dockerfile              # Configuracion del contenedor
 ├── build.sh               # Script de compilacion
@@ -37,6 +39,8 @@ Proyecto1Arqui1/
 - **Facilidad de debugging**: GDB permite depurar tanto a nivel de C como a nivel de ensamblador.
 - **Escalabilidad**: El driver en C permite reutilizar el módulo de TEA con diferentes datos sin modificar la parte en bajo nivel.
 
+---
+
 ## 2. Funcionalidades Implementadas
 
 - **Encriptación (encrypt)**  
@@ -51,7 +55,7 @@ Proyecto1Arqui1/
 - **Depuración paso a paso**  
   Uso de breakpoints para inspeccionar ejecución en C y ensamblador.
 
-
+---
 
 ## 3. Evidencias de Ejecución (GDB y QEMU)
 
@@ -63,27 +67,23 @@ qemu-system-riscv64 -machine virt -nographic -bios none \
 
 ### Conexión desde GDB
 
-gdb
+```gdb
 (gdb) target remote localhost:1234
 (gdb) break main
+(gdb) break main.c:86: Se elige las palabras a encriptar
+(gdb) break main.c:126: Se llama a encriptar en asm
+(gdb) break main.c:140: Se llama a desencriptar
 (gdb) continue
-
+```
 
 ### Inspección en GDB
 
 * Ejecución paso a paso:
 
-gdb
+```gdb
 step
 info registers
 layout asm
-
-
-* Verificación de datos en memoria:
-
-```gdb
-x/32bx plaintext     # Texto original
-x/32bx ciphertext    # Texto encriptado
 ```
 
 ### Evidencia de flujo observado
@@ -94,7 +94,7 @@ x/32bx ciphertext    # Texto encriptado
 * Al terminar, el mensaje encriptado vuelve a C.
 * Se ejecuta `tea_decrypt_asm.s`, verificando que el mensaje original se recupera.
 
-
+---
 
 ## 4. Discusión de Resultados
 
@@ -103,11 +103,69 @@ x/32bx ciphertext    # Texto encriptado
 * **Depuración**: GDB permitió validar cada paso del algoritmo en registros y memoria, lo que confirma la correcta interacción entre capas.
 * **Limitaciones**: El proyecto está enfocado en validación académica; no se implementó padding ni modos de operación (CBC, CTR, etc.), por lo que está limitado a bloques exactos de 64 bits.
 
+---
 
+## 5. Técnica y Detalles de Implementación
 
-## 5. Instrucciones de Compilación, Ejecución y Uso
+### Descripción de la solución
+
+El proyecto combina **C** como lenguaje de alto nivel para la gestión del flujo del programa, y **RISC-V Assembly** para las operaciones de bajo nivel del algoritmo TEA.
+La técnica usada fue:
+
+* Implementar en **assembly** las operaciones críticas (sumas, XOR, corrimientos de bits).
+* Usar **C** para el control de bloques, la preparación de datos y la interacción con el entorno de pruebas.
+
+### Diagrama de arquitectura del sistema
+
+```
++---------------------------+
+|         Driver C          |
+|  - Entrada/Salida         |
+|  - Control de flujo       |
+|  - Llamadas a ASM         |
++-------------+-------------+
+              |
+              v
++---------------------------+
+|     RISC-V Assembly       |
+|  - tea_encrypt_asm.s      |
+|  - tea_decrypt_asm.s      |
+|  Operaciones TEA          |
++-------------+-------------+
+              |
+              v
++---------------------------+
+|        Hardware sim       |
+|    QEMU + GDB Debugging   |
++---------------------------+
+```
+
+### Decisiones de diseño
+
+* **Mantener C como capa superior** para simplificar pruebas y extensibilidad.
+* **Pasar punteros a bloques de memoria** en lugar de valores por copia, para optimizar el manejo de datos.
+* **Utilizar registros de 32 bits** en ensamblador, alineados al diseño original de TEA.
+* **Depurar con QEMU+GDB** para observar el flujo desde alto nivel hasta ensamblador.
+
+### Resultados generales
+
+* El sistema logró encriptar y desencriptar correctamente bloques de 64 bits.
+* Se verificó que la salida de desencriptación coincide con el texto original.
+* Se validó el correcto paso de datos entre C y ensamblador.
+
+### Análisis de rendimiento
+
+* El uso de ensamblador redujo la cantidad de instrucciones necesarias frente a una implementación en C puro.
+* La ejecución en QEMU mostró tiempos estables incluso con múltiples bloques.
+* La eficiencia se debe al uso de operaciones simples (suma, XOR, shift), que son muy rápidas en arquitecturas RISC.
+* **Limitación**: al no implementarse paralelismo ni modos avanzados, el rendimiento se limita al procesamiento secuencial de bloques.
+
+---
+
+## 6. Instrucciones de Compilación, Ejecución y Uso
 
 ### 1. Construir el contenedor
+Una vez accesado a la dirección del repositorio clonado, se debe construir el docker.
 
 ```bash
 docker build -t riscv-project1 .
@@ -116,7 +174,11 @@ docker build -t riscv-project1 .
 ### 2. Ejecutar el contenedor
 
 ```bash
-docker run --rm -it -v "$(pwd)":/workspace -w /workspace riscv-project1 /bin/bash
+docker run --rm -it \
+    --name riscv-project1-container \
+    -v "$(pwd)":/workspace \
+    -w /workspace \
+    riscv-project1 /bin/bash
 ```
 
 ### 3. Compilar
@@ -148,22 +210,39 @@ Conectar:
 
 ```gdb
 target remote localhost:1234
-layout regs 
+layout regs
 break main
-break main.c:126
-break main.c:140
-break main.c:86
+break main.c:86    #Se elige las palabras a encriptar
+break main.c:126   #Se llama a encriptar en asm
+break main.c:140   #Se llama a desencriptar
 continue
 ```
 
 ### 6. Ejemplo de uso
+De ser necesario, se pueden cambiar las Keys, en la linea 97 del codigo en C. Simplemente con reemplazar las claves a las necesarias.
+A la hora de hacer todos los breaks, en el momento del break main.c86, se puede elegir la palabra a desencriptar,esto se hace marcando en la terminal de qemu, la opcion con los 
+numeros del teclado, según las opciones, una vez presionadas, se puede regresar a la terminal del gdb, escribiendo de nuevo continue para seguir con el proceso de encriptar y desencriptar, de igual manera, se puede usar STEP para ingresar a la parte del codigo de asm, y revisar las rondas de ecriptacion y desencriptacion. 
 
-Dentro de la ejecución se observará:
+Resultados esperados en caso de usar la palabra HOLA1234:
 
 ```
-Texto original:    HolaMundo
-Texto encriptado:  [bytes cifrados]
-Texto desencriptado: HolaMundo
+=== TEA Bare-metal Example ===
+Seleccione un mensaje (0-3):
+0: ME LLAMO RANDALL
+1: ARQUITECTURA RISC V
+2: HOLA1234
+3: Mensaje de prueba para TEA
+
+Original: HOLA1234
+
+Bloque original 0: 48 4F 4C 41 31 32 33 34
+Cifrando bloque 0...
+Bloque cifrado 0: 14 57 B0 AB 3E D0 A3 61
+Descifrando bloque 0...
+Bloque descifrado 0: 48 4F 4C 41 31 32 33 34
+
+Mensaje final descifrado: HOLA1234
+
 ```
 
 ---
@@ -172,3 +251,4 @@ Texto desencriptado: HolaMundo
 
 **Randall Bryan Bolaños López**
 Proyecto desarrollado para el curso de Arquitectura de Computadores I.
+
