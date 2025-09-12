@@ -99,10 +99,9 @@ layout asm
 ## 4. Discusión de Resultados
 
 * **Correctitud**: El proceso de cifrado y descifrado funciona, devolviendo el mismo mensaje original.
-* **Rendimiento**: La implementación en ensamblador optimiza operaciones aritméticas, siendo más rápida que una implementación pura en C.
+* **Rendimiento**: La implementación en ensamblador optimiza operaciones aritméticas, siendo más rápida que una implementación pura en C. El padding funciona correctamente.
 * **Depuración**: GDB permitió validar cada paso del algoritmo en registros y memoria, lo que confirma la correcta interacción entre capas.
-* **Limitaciones**: El proyecto está enfocado en validación académica; no se implementó padding ni modos de operación (CBC, CTR, etc.), por lo que está limitado a bloques exactos de 64 bits.
-
+* **Mejoras**: Se implementó un menú para elegir la palabra a decodificar, que funciona correctamente.
 ---
 
 ## 5. Técnica y Detalles de Implementación
@@ -158,7 +157,6 @@ La técnica usada fue:
 * El uso de ensamblador redujo la cantidad de instrucciones necesarias frente a una implementación en C puro.
 * La ejecución en QEMU mostró tiempos estables incluso con múltiples bloques.
 * La eficiencia se debe al uso de operaciones simples (suma, XOR, shift), que son muy rápidas en arquitecturas RISC.
-* **Limitación**: al no implementarse paralelismo ni modos avanzados, el rendimiento se limita al procesamiento secuencial de bloques.
 
 ---
 
@@ -244,6 +242,48 @@ Bloque descifrado 0: 48 4F 4C 41 31 32 33 34
 Mensaje final descifrado: HOLA1234
 
 ```
+
+En caso de usar Mensaje de prueba para TEA
+
+```
+=== TEA Bare-metal Example ===
+Seleccione un mensaje (0-3):
+0: ME LLAMO RANDALL
+1: ARQUITECTURA RISC V
+2: HOLA1234
+3: Mensaje de prueba para TEA
+
+Original: Mensaje de prueba para TEA
+
+Bloque original 0: 4D 65 6E 73 61 6A 65 20
+Cifrando bloque 0...
+Bloque cifrado 0: B9 20 31 81 48 62 38 B0
+Descifrando bloque 0...
+Bloque descifrado 0: 4D 65 6E 73 61 6A 65 20
+
+Bloque original 1: 64 65 20 70 72 75 65 62
+Cifrando bloque 1...
+Bloque cifrado 1: 40 A9 EC F1 A8 BE 9D BD
+Descifrando bloque 1...
+Bloque descifrado 1: 64 65 20 70 72 75 65 62
+
+Bloque original 2: 61 20 70 61 72 61 20 54
+Cifrando bloque 2...
+Bloque cifrado 2: 70 2A 6A E6 CE A3 B8 09
+Descifrando bloque 2...
+Bloque descifrado 2: 61 20 70 61 72 61 20 54
+
+Bloque original 3: 45 41 00 00 00 00 00 00
+Cifrando bloque 3...
+Bloque cifrado 3: 8F 1E 38 28 4B 26 F2 B6
+Descifrando bloque 3...
+Bloque descifrado 3: 45 41 00 00 00 00 00 00
+
+Mensaje final descifrado: Mensaje de prueba para TEA
+
+```
+
+
 
 ---
 
