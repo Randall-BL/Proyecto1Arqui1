@@ -291,4 +291,4 @@ Mensaje final descifrado: Mensaje de prueba para TEA
 
 **Randall Bryan Bolaños López**
 Proyecto desarrollado para el curso de Arquitectura de Computadores I.
-
+Repositorio de GitHub: https://github.com/Randall-BL/Proyecto1Arqui1
